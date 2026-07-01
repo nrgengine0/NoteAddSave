@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="my">
 <head>
@@ -40,7 +41,7 @@
 
         .container {
             width: 100%;
-            max-width: 680px; /* Tablet, Phone, Laptop အားလုံးမှာ အချိုးအစားအကျဆုံး Size */
+            max-width: 680px; /* Tablet, Phone, Laptop အားလုံးမှာ အဆင်ပြေဆုံး Size */
         }
 
         .header {
@@ -151,7 +152,7 @@
         .pubg-title { color: var(--accent-pubg); border-bottom-color: rgba(255, 159, 67, 0.2); }
         .mlbb-title { color: var(--accent-mlbb); border-bottom-color: rgba(0, 210, 211, 0.2); }
 
-        /* Responsive Table Container - Prevents structural breakages on small phones */
+        /* Responsive Table Container */
         .table-responsive {
             width: 100%;
             overflow-x: auto;
@@ -162,7 +163,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 14px;
-            white-space: nowrap; /* စာသားတွေ အောက်တန်းဆင်းမသွားအောင် ထိန်းထားပေးသည် */
+            white-space: nowrap;
         }
 
         th {
@@ -187,7 +188,7 @@
 
         .txt-right { text-align: right; }
 
-        /* Perfected Input fields inside table for all screens */
+        /* Style inside table for all screens */
         .sell-input {
             background-color: rgba(0, 0, 0, 0.4);
             border: 1px solid rgba(255, 255, 255, 0.15);
@@ -197,7 +198,7 @@
             font-size: 14px;
             font-weight: 700;
             text-align: right;
-            width: 100px; /* ဖုန်းရော ကွန်ပျူတာမှာပါ ကွက်တိဖြစ်စေမည့် Width */
+            width: 100px;
             outline: none;
             transition: border-color 0.2s;
         }
@@ -233,7 +234,7 @@
             .form-group input { padding: 10px; font-size: 15px; }
             table { font-size: 13px; }
             td, th { padding: 7px 4px; }
-            .sell-input { width: 85px; padding: 5px 6px; font-size: 13px; }
+            .sell-input { width: 90px; padding: 5px 6px; font-size: 13px; }
         }
     </style>
 </head>
@@ -251,11 +252,11 @@
             <div class="form-grid">
                 <div class="form-group">
                     <label>Coin ပမာဏ</label>
-                    <input type="text" id="coinAmount" inputmode="decimal" value="1,000" oninput="handleTopInput(this); updateSetupCloud();">
+                    <input type="text" id="coinAmount" inputmode="decimal" value="1,000" oninput="handleInput(this); updateSetupCloud();">
                 </div>
                 <div class="form-group">
                     <label>Coin ဝယ်ဈေး (Ks)</label>
-                    <input type="text" id="coinPrice" inputmode="decimal" value="84,300" oninput="handleTopInput(this); updateSetupCloud();">
+                    <input type="text" id="coinPrice" inputmode="decimal" value="84,300" oninput="handleInput(this); updateSetupCloud();">
                 </div>
             </div>
             <div class="rate-info" id="rateDisplay">1 Coin ဝယ်ဈေး = 0 Ks</div>
@@ -350,14 +351,21 @@
             { dia: "(500+500)", coin: 385.0, sell: 34200 }
         ];
 
+        let isTableBuilt = false;
+
         function parseNumber(str) {
             return parseFloat(str.toString().replace(/,/g, '')) || 0;
         }
 
-        function handleTopInput(input) {
+        // Live Comma Formatter for inputs (Smooth typing cursor restore)
+        function handleInput(input) {
             let cursorPosition = input.selectionStart;
             let originalLength = input.value.length;
+            
+            // Clean non-digits
             let value = input.value.replace(/[^0-9.]/g, '');
+            
+            // Re-apply commas
             if (value) {
                 let parts = value.split('.');
                 parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
@@ -365,18 +373,86 @@
             } else {
                 input.value = "";
             }
+            
+            // Restore text cursor position
             let newLength = input.value.length;
             input.setSelectionRange(cursorPosition + (newLength - originalLength), cursorPosition + (newLength - originalLength));
         }
 
-        // Firebase Cloud Listener
+        // Generate the table DOM only ONCE to prevent focus loss
+        function buildTableInitial() {
+            // PUBG Table Build
+            const pubgTable = document.getElementById('pubgTable');
+            pubgTable.innerHTML = "";
+            pubgData.forEach((item, index) => {
+                pubgTable.innerHTML += `
+                    <tr>
+                        <td class="item-col">${item.uc}</td>
+                        <td class="coin-col">${item.coin}</td>
+                        <td class="txt-right cost-col" id="pubg-cost-${index}">0 Ks</td>
+                        <td class="txt-right">
+                            <input type="text" class="sell-input" id="pubg-input-${index}" value="${item.sell.toLocaleString()}" oninput="handleTableInput(this, ${index}, 'pubg')">
+                        </td>
+                        <td class="txt-right profit-col" id="pubg-profit-${index}">0 Ks</td>
+                    </tr>`;
+            });
+
+            // MLBB Table Build
+            const mlbbTable = document.getElementById('mlbbTable');
+            mlbbTable.innerHTML = "";
+            mlbbData.forEach((item, index) => {
+                if (item.type === "header") {
+                    mlbbTable.innerHTML += `<tr><td colspan="5" class="group-header">${item.label}</td></tr>`;
+                } else {
+                    mlbbTable.innerHTML += `
+                        <tr>
+                            <td class="item-col">${item.dia}</td>
+                            <td class="coin-col">${item.coin}</td>
+                            <td class="txt-right cost-col" id="mlbb-cost-${index}">0 Ks</td>
+                            <td class="txt-right">
+                                <input type="text" class="sell-input mlbb-input" id="mlbb-input-${index}" value="${item.sell.toLocaleString()}" oninput="handleTableInput(this, ${index}, 'mlbb')">
+                            </td>
+                            <td class="txt-right profit-col" id="mlbb-profit-${index}">0 Ks</td>
+                        </tr>`;
+                }
+            });
+            isTableBuilt = true;
+        }
+
+        // Firebase Cloud Listener (Sync Database)
         database.ref('shop_calculator').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                if (data.coinAmount) document.getElementById('coinAmount').value = data.coinAmount;
-                if (data.coinPrice) document.getElementById('coinPrice').value = data.coinPrice;
+                // If user is currently typing in top inputs, do NOT overwrite to prevent losing input/focus
+                if (document.activeElement !== document.getElementById('coinAmount') && data.coinAmount) {
+                    document.getElementById('coinAmount').value = data.coinAmount;
+                }
+                if (document.activeElement !== document.getElementById('coinPrice') && data.coinPrice) {
+                    document.getElementById('coinPrice').value = data.coinPrice;
+                }
+                
                 if (data.pubgData) pubgData = data.pubgData;
                 if (data.mlbbData) mlbbData = data.mlbbData;
+                
+                if (!isTableBuilt) {
+                    buildTableInitial();
+                } else {
+                    // Update table inputs ONLY if they are not currently focused by the user!
+                    pubgData.forEach((item, index) => {
+                        const inputEl = document.getElementById(`pubg-input-${index}`);
+                        if (inputEl && document.activeElement !== inputEl) {
+                            inputEl.value = parseInt(item.sell).toLocaleString();
+                        }
+                    });
+                    mlbbData.forEach((item, index) => {
+                        if (item.type !== "header") {
+                            const inputEl = document.getElementById(`mlbb-input-${index}`);
+                            if (inputEl && document.activeElement !== inputEl) {
+                                inputEl.value = parseInt(item.sell).toLocaleString();
+                            }
+                        }
+                    });
+                }
                 
                 document.getElementById('syncStatus').innerText = "✅ Cloud Database Connected";
                 calculateProfits();
@@ -385,6 +461,7 @@
             }
         });
 
+        // Push top level setup changes to cloud
         function updateSetupCloud() {
             const amount = document.getElementById('coinAmount').value;
             const price = document.getElementById('coinPrice').value;
@@ -394,9 +471,12 @@
             });
         }
 
+        // Live formatting and sync inside table cells (Same as setup fields, absolutely NO focus loss!)
         function handleTableInput(input, index, type) {
             let cursorPosition = input.selectionStart;
             let originalLength = input.value.length;
+            
+            // Format input value locally
             let valStr = input.value.replace(/[^0-9]/g, '');
             let numericVal = parseInt(valStr) || 0;
             
@@ -408,9 +488,15 @@
                 database.ref('shop_calculator/mlbbData/' + index).update({ sell: numericVal });
             }
             
+            // Format inside field
             input.value = numericVal.toLocaleString();
+            
+            // Restore text cursor position
             let newLength = input.value.length;
             input.setSelectionRange(cursorPosition + (newLength - originalLength), cursorPosition + (newLength - originalLength));
+            
+            // Re-calculate profits dynamically without re-creating DOM
+            calculateProfits();
         }
 
         function updateAllCloud() {
@@ -424,54 +510,48 @@
             });
         }
 
+        // Update ONLY textContent of cells to avoid DOM destruction
         function calculateProfits() {
             const coinAmount = parseNumber(document.getElementById('coinAmount').value);
             const coinPrice = parseNumber(document.getElementById('coinPrice').value);
-            if (coinAmount <= 0) return;
+            if (coinAmount <= 0 || !isTableBuilt) return;
             
             const perCoinCost = coinPrice / coinAmount;
             document.getElementById('rateDisplay').innerText = `1 Coin ဝယ်ဈေး = ${perCoinCost.toFixed(2)} Ks`;
 
-            // PUBG Rendering
-            const pubgTable = document.getElementById('pubgTable');
-            pubgTable.innerHTML = "";
+            // Update PUBG Costs and Profits
             pubgData.forEach((item, index) => {
                 const cost = item.coin * perCoinCost;
                 const profit = item.sell - cost;
-                pubgTable.innerHTML += `
-                    <tr>
-                        <td class="item-col">${item.uc}</td>
-                        <td class="coin-col">${item.coin}</td>
-                        <td class="txt-right cost-col">${Math.round(cost).toLocaleString()} Ks</td>
-                        <td class="txt-right">
-                            <input type="text" class="sell-input" value="${item.sell.toLocaleString()}" oninput="handleTableInput(this, ${index}, 'pubg')">
-                        </td>
-                        <td class="txt-right ${profit >= 0 ? 'profit-col' : 'loss-col'}">${Math.round(profit).toLocaleString()} Ks</td>
-                    </tr>`;
+                
+                const costEl = document.getElementById(`pubg-cost-${index}`);
+                const profitEl = document.getElementById(`pubg-profit-${index}`);
+                
+                if (costEl) costEl.innerText = `${Math.round(cost).toLocaleString()} Ks`;
+                if (profitEl) {
+                    profitEl.innerText = `${Math.round(profit).toLocaleString()} Ks`;
+                    profitEl.className = `txt-right ${profit >= 0 ? 'profit-col' : 'loss-col'}`;
+                }
             });
 
-            // MLBB Rendering
-            const mlbbTable = document.getElementById('mlbbTable');
-            mlbbTable.innerHTML = "";
+            // Update MLBB Costs and Profits
             mlbbData.forEach((item, index) => {
-                if (item.type === "header") {
-                    mlbbTable.innerHTML += `<tr><td colspan="5" class="group-header">${item.label}</td></tr>`;
-                } else {
+                if (item.type !== "header") {
                     const cost = item.coin * perCoinCost;
                     const profit = item.sell - cost;
-                    mlbbTable.innerHTML += `
-                        <tr>
-                            <td class="item-col">${item.dia}</td>
-                            <td class="coin-col">${item.coin}</td>
-                            <td class="txt-right cost-col">${Math.round(cost).toLocaleString()} Ks</td>
-                            <td class="txt-right">
-                                <input type="text" class="sell-input mlbb-input" value="${item.sell.toLocaleString()}" oninput="handleTableInput(this, ${index}, 'mlbb')">
-                            </td>
-                            <td class="txt-right ${profit >= 0 ? 'profit-col' : 'loss-col'}">${Math.round(profit).toLocaleString()} Ks</td>
-                        </tr>`;
+                    
+                    const costEl = document.getElementById(`mlbb-cost-${index}`);
+                    const profitEl = document.getElementById(`mlbb-profit-${index}`);
+                    
+                    if (costEl) costEl.innerText = `${Math.round(cost).toLocaleString()} Ks`;
+                    if (profitEl) {
+                        profitEl.innerText = `${Math.round(profit).toLocaleString()} Ks`;
+                        profitEl.className = `txt-right ${profit >= 0 ? 'profit-col' : 'loss-col'}`;
+                    }
                 }
             });
         }
     </script>
 </body>
 </html>
+
