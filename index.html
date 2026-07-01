@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner: @VorSolo001</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <style>
+        :root {
+            --bg-color: #0b111e;
+            --card-bg: #151f32;
+            --accent-pubg: #ff9f43;
+            --accent-mlbb: #00d2d3;
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --profit-color: #10b981;
+            --loss-color: #ef4444;
+            --input-focus: #3b82f6;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            padding: 20px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 680px; /* Tablet, Phone, Laptop အားလုံးမှာ အချိုးအစားအကျဆုံး Size */
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #00d2d3, #ff9f43);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 0.5px;
+        }
+
+        .header p {
+            color: #a5b4fc;
+            font-size: 13px;
+            margin-top: 4px;
+            background: rgba(165, 180, 252, 0.1);
+            padding: 4px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .sync-status {
+            text-align: center;
+            font-size: 11px;
+            color: #10b981;
+            margin-top: 6px;
+            font-weight: 600;
+        }
+
+        /* Top Inputs Card */
+        .setup-card {
+            background-color: var(--card-bg);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .form-group input {
+            background-color: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            outline: none;
+            width: 100%;
+        }
+
+        .form-group input:focus {
+            border-color: var(--input-focus);
+        }
+
+        .rate-info {
+            text-align: center;
+            font-size: 14px;
+            color: #a5b4fc;
+            margin-top: 12px;
+            font-weight: 600;
+            background: rgba(165, 180, 252, 0.08);
+            padding: 8px;
+            border-radius: 8px;
+        }
+
+        /* Content Sections */
+        .section-card {
+            background-color: var(--card-bg);
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .section-title {
+            font-size: 15px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .pubg-title { color: var(--accent-pubg); border-bottom-color: rgba(255, 159, 67, 0.2); }
+        .mlbb-title { color: var(--accent-mlbb); border-bottom-color: rgba(0, 210, 211, 0.2); }
+
+        /* Responsive Table Container - Prevents structural breakages on small phones */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            white-space: nowrap; /* စာသားတွေ အောက်တန်းဆင်းမသွားအောင် ထိန်းထားပေးသည် */
+        }
+
+        th {
+            text-align: left;
+            color: var(--text-muted);
+            font-weight: 600;
+            padding: 8px 6px;
+            font-size: 12px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 8px 6px;
+            border-bottom: 1px solid rgba(255,255,255,0.03);
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .txt-right { text-align: right; }
+
+        /* Perfected Input fields inside table for all screens */
+        .sell-input {
+            background-color: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            padding: 6px 8px;
+            color: #f1f5f9;
+            font-size: 14px;
+            font-weight: 700;
+            text-align: right;
+            width: 100px; /* ဖုန်းရော ကွန်ပျူတာမှာပါ ကွက်တိဖြစ်စေမည့် Width */
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .sell-input:focus {
+            border-color: var(--accent-pubg);
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        .mlbb-input:focus {
+            border-color: var(--accent-mlbb);
+        }
+
+        .item-col { color: #ffffff; font-weight: 600; }
+        .coin-col { color: var(--text-muted); }
+        .cost-col { color: #94a3b8; }
+        .profit-col { font-weight: 700; color: var(--profit-color); }
+        .loss-col { font-weight: 700; color: var(--loss-color); }
+
+        .group-header {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #a5b4fc;
+            padding: 14px 6px 4px 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Screen Responsive Breakdown */
+        @media (max-width: 480px) {
+            body { padding: 10px 4px; }
+            .header h1 { font-size: 20px; }
+            .setup-card, .section-card { padding: 12px; border-radius: 10px; }
+            .form-group input { padding: 10px; font-size: 15px; }
+            table { font-size: 13px; }
+            td, th { padding: 7px 4px; }
+            .sell-input { width: 85px; padding: 5px 6px; font-size: 13px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h1>SMILE ONE COIN CALCULATOR</h1>
+            <p>Web Developer Tg: @VorSolo001</p>
+            <div id="syncStatus" class="sync-status">Loading Cloud Synced Data...</div>
+        </div>
+
+        <!-- Top Setup Inputs -->
+        <div class="setup-card">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Coin ပမာဏ</label>
+                    <input type="text" id="coinAmount" inputmode="decimal" value="1,000" oninput="handleTopInput(this); updateSetupCloud();">
+                </div>
+                <div class="form-group">
+                    <label>Coin ဝယ်ဈေး (Ks)</label>
+                    <input type="text" id="coinPrice" inputmode="decimal" value="84,300" oninput="handleTopInput(this); updateSetupCloud();">
+                </div>
+            </div>
+            <div class="rate-info" id="rateDisplay">1 Coin ဝယ်ဈေး = 0 Ks</div>
+        </div>
+
+        <!-- PUBG Mobile -->
+        <div class="section-card">
+            <div class="section-title pubg-title">🎮 PUBG MOBILE GLOBAL UC</div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>UC</th>
+                            <th>Coin</th>
+                            <th class="txt-right">ကုန်ကျ</th>
+                            <th class="txt-right" style="padding-right: 15px;">အရောင်း (Edit)</th>
+                            <th class="txt-right">အမြတ်ငွေ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pubgTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- MLBB Diamonds -->
+        <div class="section-card">
+            <div class="section-title mlbb-title">🎮 MOBILE LEGENDS DIAMONDS</div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Dia / Pass</th>
+                            <th>Coin</th>
+                            <th class="txt-right">ကုန်ကျ</th>
+                            <th class="txt-right" style="padding-right: 15px;">အရောင်း (Edit)</th>
+                            <th class="txt-right">အမြတ်ငွေ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="mlbbTable"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAtkK8QrsdAlT87VDZN4TNILGGYWyI5T6o",
+            authDomain: "vor-solo.firebaseapp.com",
+            databaseURL: "https://vor-solo-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "vor-solo",
+            storageBucket: "vor-solo.firebasestorage.app",
+            messagingSenderId: "856896766437",
+            appId: "1:856896766437:web:99b31ac3e1cbd58ee8ef0c",
+            measurementId: "G-4SR4281P9P"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Data Arrays
+        let pubgData = [
+            { uc: "60 UC", coin: 50.1, sell: 4500 },
+            { uc: "120 UC", coin: 100.2, sell: 9000 },
+            { uc: "180 UC", coin: 150.3, sell: 13500 },
+            { uc: "325 UC", coin: 251.0, sell: 21300 },
+            { uc: "385 UC", coin: 301.1, sell: 26400 },
+            { uc: "660 UC", coin: 505.0, sell: 42400 },
+            { uc: "720 UC", coin: 555.1, sell: 46900 },
+            { uc: "1800 UC", coin: 1262.9, sell: 113000 },
+            { uc: "3850 UC", coin: 2526.9, sell: 216000 },
+            { uc: "8100 UC", coin: 5051.4, sell: 425000 }
+        ];
+
+        let mlbbData = [
+            { type: "header", label: "Normal Diamonds" },
+            { dia: "86", coin: 61.5, sell: 5500 },
+            { dia: "172", coin: 122.0, sell: 10900 },
+            { dia: "257", coin: 176.7, sell: 15850 },
+            { dia: "706", coin: 480.0, sell: 42850 },
+            { dia: "2195", coin: 1453.0, sell: 129700 },
+            { dia: "3688", coin: 2424.0, sell: 216450 },
+            { dia: "5532", coin: 3660.0, sell: 326850 },
+            { dia: "9288", coin: 6079.0, sell: 542850 },
+            { type: "header", label: "Passes" },
+            { dia: "WEEKLY PASS", coin: 76.0, sell: 6600 },
+            { type: "header", label: "Dia 2X Double Diamond" },
+            { dia: "(50+50)", coin: 39.0, sell: 3700 },
+            { dia: "(150+150)", coin: 116.9, sell: 11000 },
+            { dia: "(250+250)", coin: 187.5, sell: 17200 },
+            { dia: "(500+500)", coin: 385.0, sell: 34200 }
+        ];
+
+        function parseNumber(str) {
+            return parseFloat(str.toString().replace(/,/g, '')) || 0;
+        }
+
+        function handleTopInput(input) {
+            let cursorPosition = input.selectionStart;
+            let originalLength = input.value.length;
+            let value = input.value.replace(/[^0-9.]/g, '');
+            if (value) {
+                let parts = value.split('.');
+                parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+                input.value = parts.join('.');
+            } else {
+                input.value = "";
+            }
+            let newLength = input.value.length;
+            input.setSelectionRange(cursorPosition + (newLength - originalLength), cursorPosition + (newLength - originalLength));
+        }
+
+        // Firebase Cloud Listener
+        database.ref('shop_calculator').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                if (data.coinAmount) document.getElementById('coinAmount').value = data.coinAmount;
+                if (data.coinPrice) document.getElementById('coinPrice').value = data.coinPrice;
+                if (data.pubgData) pubgData = data.pubgData;
+                if (data.mlbbData) mlbbData = data.mlbbData;
+                
+                document.getElementById('syncStatus').innerText = "✅ Cloud Database Connected";
+                calculateProfits();
+            } else {
+                updateAllCloud();
+            }
+        });
+
+        function updateSetupCloud() {
+            const amount = document.getElementById('coinAmount').value;
+            const price = document.getElementById('coinPrice').value;
+            database.ref('shop_calculator').update({
+                coinAmount: amount,
+                coinPrice: price
+            });
+        }
+
+        function handleTableInput(input, index, type) {
+            let cursorPosition = input.selectionStart;
+            let originalLength = input.value.length;
+            let valStr = input.value.replace(/[^0-9]/g, '');
+            let numericVal = parseInt(valStr) || 0;
+            
+            if (type === 'pubg') {
+                pubgData[index].sell = numericVal;
+                database.ref('shop_calculator/pubgData/' + index).update({ sell: numericVal });
+            } else if (type === 'mlbb') {
+                mlbbData[index].sell = numericVal;
+                database.ref('shop_calculator/mlbbData/' + index).update({ sell: numericVal });
+            }
+            
+            input.value = numericVal.toLocaleString();
+            let newLength = input.value.length;
+            input.setSelectionRange(cursorPosition + (newLength - originalLength), cursorPosition + (newLength - originalLength));
+        }
+
+        function updateAllCloud() {
+            const amount = document.getElementById('coinAmount').value;
+            const price = document.getElementById('coinPrice').value;
+            database.ref('shop_calculator').set({
+                coinAmount: amount,
+                coinPrice: price,
+                pubgData: pubgData,
+                mlbbData: mlbbData
+            });
+        }
+
+        function calculateProfits() {
+            const coinAmount = parseNumber(document.getElementById('coinAmount').value);
+            const coinPrice = parseNumber(document.getElementById('coinPrice').value);
+            if (coinAmount <= 0) return;
+            
+            const perCoinCost = coinPrice / coinAmount;
+            document.getElementById('rateDisplay').innerText = `1 Coin ဝယ်ဈေး = ${perCoinCost.toFixed(2)} Ks`;
+
+            // PUBG Rendering
+            const pubgTable = document.getElementById('pubgTable');
+            pubgTable.innerHTML = "";
+            pubgData.forEach((item, index) => {
+                const cost = item.coin * perCoinCost;
+                const profit = item.sell - cost;
+                pubgTable.innerHTML += `
+                    <tr>
+                        <td class="item-col">${item.uc}</td>
+                        <td class="coin-col">${item.coin}</td>
+                        <td class="txt-right cost-col">${Math.round(cost).toLocaleString()} Ks</td>
+                        <td class="txt-right">
+                            <input type="text" class="sell-input" value="${item.sell.toLocaleString()}" oninput="handleTableInput(this, ${index}, 'pubg')">
+                        </td>
+                        <td class="txt-right ${profit >= 0 ? 'profit-col' : 'loss-col'}">${Math.round(profit).toLocaleString()} Ks</td>
+                    </tr>`;
+            });
+
+            // MLBB Rendering
+            const mlbbTable = document.getElementById('mlbbTable');
+            mlbbTable.innerHTML = "";
+            mlbbData.forEach((item, index) => {
+                if (item.type === "header") {
+                    mlbbTable.innerHTML += `<tr><td colspan="5" class="group-header">${item.label}</td></tr>`;
+                } else {
+                    const cost = item.coin * perCoinCost;
+                    const profit = item.sell - cost;
+                    mlbbTable.innerHTML += `
+                        <tr>
+                            <td class="item-col">${item.dia}</td>
+                            <td class="coin-col">${item.coin}</td>
+                            <td class="txt-right cost-col">${Math.round(cost).toLocaleString()} Ks</td>
+                            <td class="txt-right">
+                                <input type="text" class="sell-input mlbb-input" value="${item.sell.toLocaleString()}" oninput="handleTableInput(this, ${index}, 'mlbb')">
+                            </td>
+                            <td class="txt-right ${profit >= 0 ? 'profit-col' : 'loss-col'}">${Math.round(profit).toLocaleString()} Ks</td>
+                        </tr>`;
+                }
+            });
+        }
+    </script>
+</body>
+</html>
